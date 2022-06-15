@@ -1,0 +1,51 @@
+<main class="layout" id="content-inner" style="height: auto !important;"><div id="post"><div id="post-info"><h1 class="post-title">猫影视接口解密</h1><div class="meta-secondline"></div></div></div><article class="post-content" id="article-container"><textarea rows="5" class="txt" placeholder="加密文本"></textarea><br><p><a href="javascript:;" id="uploadbtn">上传<input type="file" id="fileInput"></a></p><textarea rows="5" class="res" placeholder="解密结果"></textarea><p><input type="checkbox" id="isb64">加密文本是否是Base64加密</p><p><button class="btn"><span>解密</span></button><br></p><style>.btn{width:5rem;height:2rem;line-height:1.2rem;background:#fafafa;border:1px solid #ddd;border-radius:4px;overflow:hidden;display:inline-block}#uploadbtn{position:relative;text-align:center;width:5rem;height:2rem;line-height:1.2rem;color:#000!important;padding:4px 10px;cursor:pointer!important;background:#fafafa;border:1px solid #ddd;border-radius:4px;overflow:hidden;display:inline-block}#uploadbtn input{position:absolute;left:0;top:0;width:5rem;height:100%;opacity:0}#uploadbtn:hover{color:#444;background:#eee;border-color:#ccc;text-decoration:none!important}</style><script src="./js/crypto-js.min.js"></script><script>
+    let btn = document.querySelector('.btn');
+    let txt = document.querySelector('.txt');
+    let res = document.querySelector('.res');
+    let upload = document.querySelector('.upload');
+    let isb64 = document.querySelector('#isb64');
+    
+    document.getElementById('fileInput').addEventListener('change', function a() {
+        let reader = new FileReader();
+        reader.onload = function fileReadCompleted() {
+            txt.value = reader.result;
+        };
+        reader.readAsText(this.files[0]);
+    });
+    
+    btn.addEventListener('click', () => {
+        if (txt.value != null && txt.value.trim() != '') {
+            res.value = decrypt(txt.value)
+        }
+    })
+    
+    function decrypt(txt) {
+        var encryptedData = txt;
+        console.log(isb64.checked)
+        if (isb64.checked) {
+            encryptedData = window.atob(txt);
+        }
+        var dataArr = encryptedData.split('');
+        var prefixCode = CryptoJS.enc.Utf8.parse("$#").toString();
+        var suffixCode = CryptoJS.enc.Utf8.parse("#$").toString();
+        var pwdMix = dataArr.splice(0, encryptedData.indexOf(suffixCode) + 4).join('');
+        var roundtimeInHax = dataArr.splice(dataArr.length - 26, 26).join('');
+        var encryptedText = dataArr.join('');
+        var pwdInHax = pwdMix.substring(prefixCode.length, pwdMix.length - suffixCode.length);
+        var roundTime = CryptoJS.enc.Utf8.stringify(CryptoJS.enc.Hex.parse(roundtimeInHax));
+        var pwd = CryptoJS.enc.Utf8.stringify(CryptoJS.enc.Hex.parse(pwdInHax));
+        var iv = CryptoJS.enc.Utf8.parse(roundTime.padEnd(16, '0'));
+        var pkBlocks = CryptoJS.enc.Utf8.parse(pwd.padEnd(16, '0'));
+        var cipherParams = CryptoJS.lib.CipherParams.create({
+            ciphertext: CryptoJS.enc.Hex.parse(encryptedText)
+        });
+        var decryptedData = CryptoJS.enc.Utf8.stringify(
+            CryptoJS.AES.decrypt(cipherParams, pkBlocks, {
+                'iv': iv,
+                'mode': CryptoJS.mode.CBC,
+                'padding': CryptoJS.pad.Pkcs7
+            })
+        );
+        return decryptedData;
+    }
+</script></article>
